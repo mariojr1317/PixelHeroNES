@@ -1,0 +1,43 @@
+name: Build Pixel Hero NES
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compile NES ROM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install cc65 and Make
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cc65 make
+
+      - name: Compile ROM
+        run: make
+
+      - name: Verify iNES ROM
+        run: |
+          test -f pixel-hero.nes
+          test "$(stat -c%s pixel-hero.nes)" -eq 40976
+          python3 - <<'PY'
+          from pathlib import Path
+          rom = Path("pixel-hero.nes").read_bytes()
+          assert rom[:4] == b"NES\x1a", "Invalid iNES signature"
+          assert rom[4] == 2, "Expected 32 KiB PRG-ROM"
+          assert rom[5] == 1, "Expected 8 KiB CHR-ROM"
+          print(f"Valid iNES ROM: {len(rom)} bytes")
+          PY
+
+      - name: Upload ROM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pixel-Hero-NES
+          path: pixel-hero.nes
+          if-no-files-found: error
