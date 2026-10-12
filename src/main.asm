@@ -65,7 +65,7 @@ CONTROLLER = $4016
 
     lda #$30
     sta player_x
-    lda #$C0
+    lda #$C8
     sta player_y
     lda #$00
     sta velocity_y
@@ -243,7 +243,7 @@ controller_mask:
     and #%00000001
     beq @gravity
     lda player_y
-    cmp #$C0
+    cmp #$C8
     bne @gravity
     lda #$F0               ; upward velocity (-16 pixels/frame)
     sta velocity_y
@@ -259,11 +259,11 @@ controller_mask:
     adc velocity_y
     sta player_y
 
-    ; Ground top is at screen Y=208; player rests at Y=192.
+    ; Ground top is at screen Y=208; the 8x8 player rests at Y=200.
     lda player_y
-    cmp #$C0
+    cmp #$C8
     bcc @done
-    lda #$C0
+    lda #$C8
     sta player_y
     lda #$00
     sta velocity_y
