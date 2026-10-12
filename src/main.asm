@@ -1,5 +1,5 @@
 ; ============================================================
-; PIXEL HERO NES - original platformer prototype
+; PIXEL HERO NES - colorful original platformer
 ; Target: NES / NROM-256 (Mapper 0), ca65
 ; ============================================================
 
@@ -101,13 +101,60 @@ CONTROLLER = $4016
 .endproc
 
 .proc load_palette
+    ; Background palettes: bright sky, grass, soil and white clouds.
     lda PPUSTATUS
     lda #$3F
     sta PPUADDR
     lda #$00
     sta PPUADDR
 
-    ; Background palette 0
+    lda #$21               ; universal sky blue
+    sta PPUDATA
+    lda #$2A               ; green grass
+    sta PPUDATA
+    lda #$17               ; earthy brown
+    sta PPUDATA
+    lda #$30               ; white
+    sta PPUDATA
+
+    ; Background palette 1
+    lda #$21
+    sta PPUDATA
+    lda #$12
+    sta PPUDATA
+    lda #$16
+    sta PPUDATA
+    lda #$30
+    sta PPUDATA
+
+    ; Background palette 2
+    lda #$21
+    sta PPUDATA
+    lda #$06
+    sta PPUDATA
+    lda #$16
+    sta PPUDATA
+    lda #$30
+    sta PPUDATA
+
+    ; Background palette 3
+    lda #$21
+    sta PPUDATA
+    lda #$2A
+    sta PPUDATA
+    lda #$17
+    sta PPUDATA
+    lda #$30
+    sta PPUDATA
+
+    ; Sprite palettes live at $3F10, not in the background palette area.
+    lda PPUSTATUS
+    lda #$3F
+    sta PPUADDR
+    lda #$10
+    sta PPUADDR
+
+    ; Palette 0: blue outfit, warm face, white highlights.
     lda #$0F
     sta PPUDATA
     lda #$16
@@ -117,25 +164,23 @@ CONTROLLER = $4016
     lda #$30
     sta PPUDATA
 
-    ; Background palettes 1-2
+    ; Initialize the remaining sprite palettes too.
     lda #$0F
-    sta PPUDATA
-    lda #$12
-    sta PPUDATA
-    lda #$21
-    sta PPUDATA
-    lda #$30
-    sta PPUDATA
-    lda #$0F
-    sta PPUDATA
-    lda #$06
     sta PPUDATA
     lda #$16
     sta PPUDATA
+    lda #$27
+    sta PPUDATA
     lda #$30
     sta PPUDATA
-
-    ; Sprite palette 0
+    lda #$0F
+    sta PPUDATA
+    lda #$16
+    sta PPUDATA
+    lda #$27
+    sta PPUDATA
+    lda #$30
+    sta PPUDATA
     lda #$0F
     sta PPUDATA
     lda #$16
@@ -154,7 +199,7 @@ CONTROLLER = $4016
     lda #$00
     sta PPUADDR
 
-    ; 26 empty rows (26 * 32 = 832 tiles).
+    ; 26 rows of sky (26 * 32 = 832 tiles).
     ldx #$00
 @empty_rows:
     ldy #$00
@@ -168,16 +213,24 @@ CONTROLLER = $4016
     cpx #26
     bne @empty_rows
 
-    ; Four rows of ground (4 * 32 = 128 tiles).
+    ; First ground row is grass; three lower rows are dirt.
     ldx #$00
-@floor:
+@grass:
     lda #$01
     sta PPUDATA
     inx
-    cpx #128
-    bne @floor
+    cpx #32
+    bne @grass
 
-    ; 64 bytes of attribute table.
+    ldx #$00
+@dirt:
+    lda #$02
+    sta PPUDATA
+    inx
+    cpx #96
+    bne @dirt
+
+    ; Attribute table: use background palette 0 throughout.
     ldx #$00
 @attributes:
     lda #$00
@@ -185,6 +238,62 @@ CONTROLLER = $4016
     inx
     cpx #64
     bne @attributes
+
+    ; Add small cloud clusters high in the sky.
+    lda PPUSTATUS
+    lda #$20
+    sta PPUADDR
+    lda #$84               ; row 4, column 4
+    sta PPUADDR
+    lda #$03
+    sta PPUDATA
+    lda #$03
+    sta PPUDATA
+
+    lda PPUSTATUS
+    lda #$20
+    sta PPUADDR
+    lda #$8D               ; row 4, column 13
+    sta PPUADDR
+    lda #$03
+    sta PPUDATA
+    lda #$03
+    sta PPUDATA
+
+    lda PPUSTATUS
+    lda #$20
+    sta PPUADDR
+    lda #$97               ; row 4, column 23
+    sta PPUADDR
+    lda #$03
+    sta PPUDATA
+    lda #$03
+    sta PPUDATA
+
+    ; Flowers just above the ground.
+    lda PPUSTATUS
+    lda #$23
+    sta PPUADDR
+    lda #$26               ; row 25, column 6
+    sta PPUADDR
+    lda #$05
+    sta PPUDATA
+
+    lda PPUSTATUS
+    lda #$23
+    sta PPUADDR
+    lda #$30               ; row 25, column 16
+    sta PPUADDR
+    lda #$05
+    sta PPUDATA
+
+    lda PPUSTATUS
+    lda #$23
+    sta PPUADDR
+    lda #$3B               ; row 25, column 27
+    sta PPUADDR
+    lda #$05
+    sta PPUDATA
     rts
 .endproc
 
@@ -274,7 +383,7 @@ controller_mask:
 .proc update_sprite
     lda player_y
     sta oam_buffer
-    lda #$02
+    lda #$04               ; character artwork tile
     sta oam_buffer+1
     lda #$00
     sta oam_buffer+2
@@ -319,19 +428,31 @@ controller_mask:
 .endproc
 
 .segment "CHARS"
-; Tile 0: blank.
+; Tile 0: transparent sky.
 .res 16, $00
 
-; Tile 1: ground block, color 1.
-.byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-.byte $00,$00,$00,$00,$00,$00,$00,$00
+; Tile 1: grassy top with earthy underside (background palette 0).
+.byte $FF,$FF,$92,$00,$20,$12,$00,$10
+.byte $00,$00,$6D,$FF,$DF,$ED,$FF,$EF
 
-; Tile 2: solid-color player, color 3.
-.byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-.byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+; Tile 2: textured dirt.
+.byte $00,$10,$00,$22,$00,$10,$00,$08
+.byte $FF,$EF,$FF,$DD,$FF,$EF,$FF,$F7
+
+; Tile 3: puffy white cloud.
+.byte $00,$38,$7E,$FF,$FF,$7E,$38,$00
+.byte $00,$38,$7E,$FF,$FF,$7E,$38,$00
+
+; Tile 4: tiny blue-haired adventurer, orange face, light shirt.
+.byte $38,$7E,$42,$42,$38,$3C,$5A,$C3
+.byte $00,$00,$3C,$3C,$38,$7E,$00,$00
+
+; Tile 5: little flower for the landscape.
+.byte $10,$38,$54,$38,$10,$10,$38,$00
+.byte $10,$38,$54,$38,$00,$00,$00,$00
 
 ; Fill remaining CHR-ROM to exactly 8 KiB.
-.res 8128, $00
+.res 8096, $00
 
 .segment "VECTORS"
 .word nmi
