@@ -74,9 +74,20 @@ CONTROLLER = $4016
     jsr load_nametable
     jsr update_sprite
 
-    ; Enable NMI, use pattern table 0 for background and sprites.
+    ; Explicitly reset both PPU scroll registers.
+    ; If the scroll latch contains stale values, the nametable can appear
+    ; shifted and make the ground look like it is at the top of the screen.
+    lda #$00
+    sta $2005
+    sta $2005
+
+    ; Select nametable 0, enable NMI, and keep background/sprites in pattern table 0.
     lda #%10000000
     sta PPUCTRL
+    ; Reset scroll again after PPUCTRL is configured.
+    lda #$00
+    sta $2005
+    sta $2005
     lda #%00011110
     sta PPUMASK
 
